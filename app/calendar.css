@@ -1,0 +1,155 @@
+/* Estilos personalizados para react-big-calendar */
+
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 10px 3px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #374151;
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.rbc-today {
+  background-color: #dbeafe;
+}
+
+.rbc-off-range-bg {
+  background-color: #f9fafb;
+}
+
+.rbc-event {
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
+
+.rbc-event-label {
+  font-size: 0.75rem;
+}
+
+.rbc-event-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rbc-day-bg {
+  border-top: 1px solid #e5e7eb;
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #f3f4f6;
+}
+
+.rbc-current-time-indicator {
+  background-color: #ef4444;
+  pointer-events: none;
+}
+
+.rbc-toolbar {
+  padding: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  gap: 10px;
+}
+
+.rbc-toolbar button {
+  padding: 5px 15px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #374151;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.rbc-toolbar label {
+  margin: 0 10px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rbc-month-view {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rbc-month-header {
+  padding: 0;
+}
+
+.rbc-date-cell {
+  padding: 5px;
+  text-align: right;
+}
+
+.rbc-date-cell.rbc-now {
+  font-weight: bold;
+}
+
+/* Estilos para eventos en el calendario */
+.rbc-event-pending {
+  background-color: #3b82f6;
+}
+
+.rbc-event-in-progress {
+  background-color: #f59e0b;
+}
+
+.rbc-event-completed {
+  background-color: #10b981;
+}
+
+.rbc-event-high {
+  background-color: #ef4444;
+}
+
+.rbc-event-medium {
+  background-color: #3b82f6;
+}
+
+.rbc-event-low {
+  background-color: #6b7280;
+}
+
+/* Popup de eventos */
+.rbc-overlay {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-overlay-header {
+  padding: 10px;
+  background-color: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+.rbc-overlay-body {
+  padding: 10px;
+}

@@ -10,6 +10,7 @@ interface Task {
   priority: 'high' | 'medium' | 'low';
   category: string;
   completed: boolean;
+  creatorEmail?: string;
 }
 
 interface TaskListProps {
@@ -67,6 +68,11 @@ export default function TaskList({ tasks, onComplete, onDelete }: TaskListProps)
               <p className={`mt-1 text-sm text-gray-600 ${task.completed ? 'line-through' : ''}`}>
                 {task.description}
               </p>
+              {task.creatorEmail && (
+                <p className="mt-1 text-xs text-gray-500">
+                  📧 {task.creatorEmail}
+                </p>
+              )}
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
                   {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}

@@ -9,6 +9,7 @@ interface ITask extends Document {
   dueDate?: Date;
   tags?: string[];
   createdBy?: mongoose.Types.ObjectId;
+  creatorEmail?: string;
   assignedTo?: mongoose.Types.ObjectId[];
   completed: boolean;
   completedAt?: Date;
@@ -62,6 +63,11 @@ const taskSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+  },
+  creatorEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
   },
   assignedTo: [{
     type: mongoose.Schema.Types.ObjectId,

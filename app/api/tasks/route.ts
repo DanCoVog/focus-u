@@ -1,37 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Task from '@/models/Task';
-import { getToken } from 'next-auth/jwt';
 
 // 📦 OBTENER TAREAS (GET)
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    if (!token || !token.sub) {
-      return NextResponse.json(
-        { error: 'No autorizado - Se requiere autenticación válida' },
-        { status: 401 }
-      );
-    }
-
-    const searchParams = request.nextUrl.searchParams;
-    const status = searchParams.get('status');
-    const userId = token.sub;
-
     await connectDB();
 
-    const query: any = { createdBy: userId };
-    if (status) query.status = status;
-
-    const tasks = await Task.find(query)
-      .populate('assignedTo', 'username email')
+    const tasks = await Task.find()
       .sort({ createdAt: -1 });
 
     return NextResponse.json({
       tasks,
       count: tasks.length,
-      status: status || 'all',
+      status: 'all'
     });
   } catch (error: any) {
     console.error('Error al obtener tareas:', error);
@@ -42,20 +25,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-
 // 📝 CREAR TAREA (POST)
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    if (!token || !token.sub) {
-      return NextResponse.json(
-        { error: 'No autorizado - Se requiere autenticación válida' },
-        { status: 401 }
-      );
-    }
+    console.log('📝 Iniciando creación de tarea...');
 
     const body = await request.json();
+    console.log('📄 Datos recibidos:', body);
 
     if (!body.title || typeof body.title !== 'string') {
       return NextResponse.json(
@@ -84,11 +61,19 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const task = await Task.create({
-      ...body,
-      createdBy: token.sub,
+      title: body.title,
+      description: body.description || '',
       status: body.status || 'pendiente',
       priority: body.priority || 'media',
+      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      tags: Array.isArray(body.tags) ? body.tags : [],
+      creatorEmail: body.creatorEmail || '',
+      completed: body.status === 'completada',
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
+
+    console.log('✅ Tarea creada:', task);
 
     return NextResponse.json(
       { message: 'Tarea creada exitosamente', task },
@@ -96,6 +81,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('Error al crear tarea:', error);
+    
+    // Manejar errores de validación
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((err: any) => err.message);
+      return NextResponse.json(
+        { error: 'Error de validación', details: messages.join(', ') },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Error al crear la tarea', details: error?.message },
       { status: 500 }
@@ -107,14 +102,6 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    if (!token || !token.sub) {
-      return NextResponse.json(
-        { error: 'No autorizado - Se requiere autenticación válida' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('id');
     if (!taskId) {
@@ -125,14 +112,23 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const userId = token.sub;
 
     await connectDB();
 
-    const task = await Task.findOne({ _id: taskId, createdBy: userId });
+    const task = await Task.findByIdAndUpdate(
+      taskId,
+      {
+        ...body,
+        status: body.status || undefined,
+        priority: body.priority || undefined,
+        description: body.description || undefined
+      },
+      { new: true, runValidators: true }
+    );
+
     if (!task) {
       return NextResponse.json(
-        { error: 'Tarea no encontrada o sin permisos' },
+        { error: 'Tarea no encontrada' },
         { status: 404 }
       );
     }
@@ -180,14 +176,6 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    if (!token || !token.sub) {
-      return NextResponse.json(
-        { error: 'No autorizado - Se requiere autenticación válida' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('id');
     if (!taskId) {
@@ -197,19 +185,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const userId = token.sub;
-
     await connectDB();
 
-    const task = await Task.findOne({ _id: taskId, createdBy: userId });
+    const task = await Task.findByIdAndDelete(taskId);
     if (!task) {
       return NextResponse.json(
-        { error: 'Tarea no encontrada o sin permisos' },
+        { error: 'Tarea no encontrada' },
         { status: 404 }
       );
     }
-
-    await Task.findByIdAndDelete(taskId);
 
     return NextResponse.json({
       message: 'Tarea eliminada exitosamente',

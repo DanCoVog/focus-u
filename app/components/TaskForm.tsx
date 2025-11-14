@@ -23,6 +23,13 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar que el título tenga al menos 3 caracteres
+    if (title.trim().length < 3) {
+      alert('El título debe tener al menos 3 caracteres');
+      return;
+    }
+    
     onSubmit({
       title,
       description,

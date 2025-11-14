@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
+import CalendarView from '../components/Calendar';
 
 interface User {
   username: string;
@@ -20,6 +21,7 @@ interface Task {
   category: string;
   completed: boolean;
   status: 'pendiente' | 'en-progreso' | 'completada';
+  creatorEmail?: string;
 }
 
 export default function Dashboard() {
@@ -59,7 +61,8 @@ export default function Dashboard() {
             priority: task.priority === 'alta' ? 'high' : task.priority === 'media' ? 'medium' : 'low',
             category: task.tags?.[0] || '',
             completed: task.status === 'completada',
-            status: task.status
+            status: task.status,
+            creatorEmail: task.creatorEmail || ''
           })));
         }
       } catch (error) {
@@ -105,13 +108,17 @@ export default function Dashboard() {
     try {
       console.log('Creando tarea con datos:', taskData);
 
+      // Obtener email del usuario desde localStorage
+      const userEmail = localStorage.getItem('email') || '';
+
       const apiTask = {
         title: taskData.title,
         description: taskData.description,
         dueDate: new Date(taskData.dueDate).toISOString(),
         priority: taskData.priority === 'high' ? 'alta' : taskData.priority === 'medium' ? 'media' : 'baja',
         tags: taskData.category ? [taskData.category] : [],
-        status: taskData.status || 'pendiente'
+        status: taskData.status || 'pendiente',
+        creatorEmail: userEmail
       };
 
       const response = await fetch('/api/tasks', {
@@ -136,7 +143,8 @@ export default function Dashboard() {
         priority: task.priority === 'alta' ? 'high' : task.priority === 'media' ? 'medium' : 'low',
         category: task.tags?.[0] || '',
         completed: task.status === 'completada',
-        status: task.status
+        status: task.status,
+        creatorEmail: task.creatorEmail || userEmail
       };
 
       setTasks([...tasks, newTask]);
@@ -389,6 +397,26 @@ export default function Dashboard() {
                 {filter === 'all' && ' ¡Agrega una tarea para comenzar!'}
               </motion.div>
             )}
+          </motion.div>
+
+          {/* Sección de Calendario */}
+          <motion.div 
+            className="mt-8 bg-white rounded-xl shadow-lg p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-6">Calendario de Tareas</h3>
+            <CalendarView 
+              onSelectEvent={(event) => {
+                console.log('Evento seleccionado:', event);
+                // Aquí puedes agregar lógica para manejar eventos seleccionados
+              }}
+              onSelectSlot={(slotInfo) => {
+                console.log('Slot seleccionado:', slotInfo);
+                setShowForm(true);
+              }}
+            />
           </motion.div>
         </main>
       </div>

@@ -14,7 +14,9 @@ export default function Home() {
       // Si está autenticado, redirigir al dashboard
       router.push('/dashboard');
     }
+    // Si NO está autenticado, mostrar la página principal (no hacer nada)
   }, [router]);
+  
   return (
     <main className="flex min-h-screen flex-col">
       {/* Hero Section con Navbar */}
