@@ -279,24 +279,28 @@ export default function Dashboard() {
             </div>
             <nav>
               <ul className="space-y-2">
-                {[
-                  { name: 'Dashboard', icon: '📊' },
-                  { name: 'Tareas', icon: '✅' },
-                  { name: 'Calendario', icon: '📅' },
-                  { name: 'Equipo', icon: '👥' },
-                  { name: 'Configuración', icon: '⚙️' }
-                ].map((item) => (
-                  <motion.li key={item.name}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-all duration-200 flex items-center space-x-3">
-                      <span>{item.icon}</span>
-                      <span>{item.name}</span>
-                    </button>
-                  </motion.li>
-                ))}
-              </ul>
+  {[
+    { name: 'Dashboard', icon: '📊', path: '/dashboard' },
+    { name: 'Tareas', icon: '✅', path: '/tasks' },
+    { name: 'Calendario', icon: '📅', path: '/calendar' },
+    { name: 'Equipo', icon: '👥', path: '/team' },
+    { name: 'Configuración', icon: '⚙️', path: '/settings' }
+  ].map((item) => (
+    <motion.li
+      key={item.name}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <button
+        onClick={() => router.push(item.path)}
+        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-all duration-200 flex items-center space-x-3"
+      >
+        <span>{item.icon}</span>
+        <span>{item.name}</span>
+      </button>
+    </motion.li>
+  ))}
+</ul>
             </nav>
           </div>
         </motion.aside>
