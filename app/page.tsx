@@ -56,7 +56,7 @@ export default function Home() {
           </p>
           <Link
             href="/register"
-            className="bg-white text-blue-600 px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           >
             ¡Comienza Gratis!
           </Link>
