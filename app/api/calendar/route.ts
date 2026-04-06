@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Task from '@/models/Task';
-import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
     // Conectar a base de datos
     await connectDB();
 
-    // Obtener todas las tareas (sin validación de usuario por ahora)
-    const tasks = await Task.find()
-      .sort({ dueDate: 1 });
+    // Obtener parámetros de fecha
+    const { searchParams } = new URL(request.url);
+    const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : new Date().getMonth();
+    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
+
+    // Crear rango de fechas para el mes completo
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+
+    // Obtener todas las tareas del mes
+    const tasks = await Task.find({
+      dueDate: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    }).sort({ dueDate: 1 });
 
     // Convertir tareas a eventos de calendario
     const events = tasks.map((task: any) => ({
@@ -21,6 +33,7 @@ export async function GET(request: NextRequest) {
       status: task.status,
       priority: task.priority,
       description: task.description,
+      creatorEmail: task.creatorEmail,
       backgroundColor: 
         task.status === 'completada' ? '#10b981' :
         task.status === 'en-progreso' ? '#f59e0b' :
@@ -36,7 +49,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       events,
-      total: events.length
+      total: events.length,
+      month,
+      year,
+      monthName: new Date(year, month).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     });
 
   } catch (error: any) {
@@ -98,30 +114,26 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const eventId = searchParams.get('id');
-
-    if (!eventId) {
-      return NextResponse.json(
-        { error: 'Se requiere el ID del evento' },
-        { status: 400 }
-      );
-    }
-
+    const id = searchParams.get('id');
     const body = await request.json();
 
     await connectDB();
 
     const updatedTask = await Task.findByIdAndUpdate(
-      eventId,
+      id,
       {
-        title: body.title,
-        dueDate: body.start,
-        status: body.status,
-        priority: body.priority,
-        description: body.description
+        ...body,
+        updatedAt: new Date()
       },
       { new: true }
     );
+
+    if (!updatedTask) {
+      return NextResponse.json(
+        { error: 'Evento no encontrado' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
