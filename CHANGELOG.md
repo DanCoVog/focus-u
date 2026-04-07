@@ -1,5 +1,39 @@
 # 📝 CHANGELOG - Focus-U v1.1.0
 
+Focus-U es una plataforma integral de gestión de tareas y colaboración diseñada para maximizar la productividad personal y de equipo. Utiliza un stack moderno enfocado en la velocidad, seguridad y una experiencia de usuario fluida.
+
+---
+
+## 🛠️ ARQUITECTURA Y STACK TECNOLÓGICO
+
+### 1. **Core del Sistema**
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) - Proporciona Renderizado en el Servidor (SSR), Generación de Sitios Estáticos (SSG) y Rutas de API integradas.
+- **Lenguaje**: [TypeScript](https://www.typescriptlang.org/) - Garantiza robustez y tipado estricto en toda la base del código.
+- **Frontend**: [React 19](https://react.dev/) - La versión más reciente con mejoras en rendimiento y gestión de estado.
+
+### 2. **Base de Datos y Persistencia**
+- **Motor**: [MongoDB](https://www.mongodb.com/) - Base de datos NoSQL basada en documentos para una alta escalabilidad.
+- **ORM/ODM**: [Mongoose](https://mongoosejs.com/) - Proporciona una solución basada en esquemas para modelar los datos de la aplicación.
+- **Entornos**: Configuración mediante `.env.local` para seguridad de credenciales.
+
+### 3. **Seguridad y Autenticación**
+- **Tokens**: [JWT (JSON Web Tokens)](https://jwt.io/) usando las librerías `jose` y `jsonwebtoken`.
+- **Encriptación**: [bcryptjs](https://github.com/dcodeIO/bcrypt.js) para el hashing seguro de contraseñas.
+- **Middleware**: Sistema de protección de rutas basado en Next.js Middleware para verificar sesiones activas.
+
+### 4. **Interfaz de Usuario (UI/UX) Premium**
+- **Estilos**: [Tailwind CSS v3](https://tailwindcss.com/) - Diseño basado en utilidades para una interfaz altamente personalizable y ligera.
+- **Animaciones**: [Framer Motion](https://www.framer.com/motion/) - Implementación de micro-interacciones, transiciones de página y efectos de suavizado.
+- **Iconografía**: [Lucide React](https://lucide.dev/) - Set de iconos vectoriales consistentes y modernos.
+- **Feedback**: [Sonner](https://sonner.emilkowal.ski/) - Sistema de notificaciones toast elegantes.
+
+### 5. **Sistemas Específicos**
+- **Gestión de Temas**: `ThemeContext` personalizado que integra variables CSS con Tailwind para un soporte perfecto de Modo Claro y Oscuro.
+- **Calendario**: [React Big Calendar](https://jquense.github.io/react-big-calendar/) integrado con `date-fns` para una manipulación precisa de fechas y zonas horarias.
+- **Sistema de Equipos**: Arquitectura de roles (Owner, Admin, Editor, Viewer) con gestión dinámica de miembros por invitación.
+
+---
+
 ## 🎉 NUEVAS CARACTERÍSTICAS (26 de Marzo, 2026)
 
 ### 🌙 Sistema de Dark Mode Completo

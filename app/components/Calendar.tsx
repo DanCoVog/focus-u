@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addMonths, subMonths } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../calendar.css';
@@ -54,7 +54,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
       setLoading(true);
       const month = currentDate.getMonth();
       const year = currentDate.getFullYear();
-      
+
       const response = await fetch(`/api/calendar?month=${month}&year=${year}`);
       if (response.ok) {
         const data = await response.json();
@@ -84,12 +84,24 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
     }
   };
 
-  const handlePreviousMonth = () => {
-    setCurrentDate(subMonths(currentDate, 1));
+  const handlePrevious = () => {
+    if (view === 'month') {
+      setCurrentDate(subMonths(currentDate, 1));
+    } else if (view === 'week') {
+      setCurrentDate(subWeeks(currentDate, 1));
+    } else if (view === 'day') {
+      setCurrentDate(subDays(currentDate, 1));
+    }
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(addMonths(currentDate, 1));
+  const handleNext = () => {
+    if (view === 'month') {
+      setCurrentDate(addMonths(currentDate, 1));
+    } else if (view === 'week') {
+      setCurrentDate(addWeeks(currentDate, 1));
+    } else if (view === 'day') {
+      setCurrentDate(addDays(currentDate, 1));
+    }
   };
 
   const handleToday = () => {
@@ -112,13 +124,6 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
     };
   };
 
-  const monthLabel = currentDate.toLocaleDateString('es-ES', { 
-    month: 'long', 
-    year: 'numeric' 
-  }).charAt(0).toUpperCase() + currentDate.toLocaleDateString('es-ES', { 
-    month: 'long', 
-    year: 'numeric' 
-  }).slice(1);
 
   if (loading) {
     return <div className="text-center py-8">Cargando calendario...</div>;
@@ -127,47 +132,93 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-800">
       {/* Header con controles */}
-      <motion.div 
+      <motion.div
         className="mb-4 flex items-center justify-between"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-            {monthLabel}
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {events.length} tarea{events.length !== 1 ? 's' : ''} este mes
-          </p>
-        </div>
+        <div className="flex flex-col xl:flex-row xl:items-center gap-4 w-full">
+          {/* Mes, Año y Tareas Status */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-1">
+              <select 
+                value={currentDate.getMonth()}
+                onChange={(e) => {
+                  const newDate = new Date(currentDate);
+                  newDate.setMonth(parseInt(e.target.value));
+                  setCurrentDate(newDate);
+                }}
+                className="text-2xl font-bold bg-transparent text-gray-900 dark:text-white capitalize cursor-pointer hover:text-blue-600 focus:outline-none transition-colors border-none p-0 appearance-none"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i} className="dark:bg-gray-800 text-base font-normal">
+                    {format(new Date(2024, i, 1), 'MMMM', { locale: es })}
+                  </option>
+                ))}
+              </select>
+              <select 
+                value={currentDate.getFullYear()}
+                onChange={(e) => {
+                  const newDate = new Date(currentDate);
+                  newDate.setFullYear(parseInt(e.target.value));
+                  setCurrentDate(newDate);
+                }}
+                className="text-2xl font-bold bg-transparent text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 focus:outline-none transition-colors border-none p-0 appearance-none ml-1"
+              >
+                {Array.from({ length: 101 }, (_, i) => 2000 + i).map(y => (
+                  <option key={y} value={y} className="dark:bg-gray-800 text-base font-normal">
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 sm:ml-2">
+              {events.length} tarea{events.length !== 1 ? 's' : ''} cargada{events.length !== 1 ? 's' : ''}
+            </p>
+          </div>
 
-        <div className="flex gap-2">
-          <motion.button
-            onClick={handlePreviousMonth}
-            className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-medium text-sm"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ← Anterior
-          </motion.button>
-          
-          <motion.button
-            onClick={handleToday}
-            className="px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Hoy
-          </motion.button>
+          <div className="flex flex-wrap gap-2 sm:ml-auto">
+            {/* Navegación */}
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <button
+                onClick={handlePrevious}
+                className="p-1 px-2 rounded-md hover:bg-white dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
+                title="Anterior"
+              >
+                ←
+              </button>
+              <button
+                onClick={handleToday}
+                className="px-3 py-1 rounded-md hover:bg-white dark:hover:bg-gray-700 transition-all text-sm font-medium text-gray-700 dark:text-gray-200"
+              >
+                Hoy
+              </button>
+              <button
+                onClick={handleNext}
+                className="p-1 px-2 rounded-md hover:bg-white dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
+                title="Siguiente"
+              >
+                →
+              </button>
+            </div>
 
-          <motion.button
-            onClick={handleNextMonth}
-            className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-medium text-sm"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Siguiente →
-          </motion.button>
+            {/* Vistas */}
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              {(['month', 'week', 'day'] as View[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-3 py-1 rounded-md transition-all text-sm font-medium capitalize ${
+                    view === v 
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {v === 'month' ? 'Mes' : v === 'week' ? 'Semana' : 'Día'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -209,8 +260,10 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
           onSelectSlot={handleSelectSlot}
           eventPropGetter={eventStyleGetter}
           views={['month', 'week', 'day']}
+          date={currentDate}
+          onNavigate={(newDate) => setCurrentDate(newDate)}
           popup
-          toolbar={true}
+          toolbar={false}
         />
       </div>
     </div>
