@@ -36,9 +36,10 @@ interface CalendarEvent {
 interface CalendarViewProps {
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
+  refreshKey?: number;
 }
 
-export default function CalendarView({ onSelectEvent, onSelectSlot }: CalendarViewProps) {
+export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }: CalendarViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -46,7 +47,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot }: CalendarVi
 
   useEffect(() => {
     fetchEvents();
-  }, [currentDate]);
+  }, [currentDate, refreshKey]);
 
   const fetchEvents = async () => {
     try {

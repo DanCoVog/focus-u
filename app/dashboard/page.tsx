@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('dueDate');
+  const [calendarKey, setCalendarKey] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function Dashboard() {
 
       setTasks([newTask, ...tasks]);
       setShowForm(false);
+      setCalendarKey(prev => prev + 1);
       toast.success('Tarea creada exitosamente');
     } catch (error) {
       console.error('Error al guardar la tarea:', error);
@@ -94,6 +96,7 @@ export default function Dashboard() {
       setTasks(tasks.map(task =>
         task.id === taskId ? { ...task, completed: true, status: 'completada' as const } : task
       ));
+      setCalendarKey(prev => prev + 1);
       toast.success('Tarea completada');
     } catch (error) {
       console.error('Error al completar la tarea:', error);
@@ -107,6 +110,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Error al eliminar la tarea');
 
       setTasks(tasks.filter(task => task.id !== taskId));
+      setCalendarKey(prev => prev + 1);
       toast.success('Tarea eliminada');
     } catch (error) {
       console.error('Error al eliminar la tarea:', error);
@@ -244,6 +248,7 @@ export default function Dashboard() {
       >
         <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Calendario de Tareas</h3>
         <CalendarView
+          refreshKey={calendarKey}
           onSelectEvent={(event) => {
             console.log('Evento seleccionado:', event);
           }}
