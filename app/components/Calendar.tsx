@@ -6,7 +6,7 @@ import { format, parse, startOfWeek, getDay, addMonths, subMonths, addWeeks, sub
 import { es } from 'date-fns/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../calendar.css';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const locales = {
   es: es,
@@ -44,6 +44,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
+  const [direction, setDirection] = useState(0); // 1 = adelante, -1 = atrás, 0 = hoy/inicio
 
   useEffect(() => {
     fetchEvents();
@@ -85,6 +86,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
   };
 
   const handlePrevious = () => {
+    setDirection(-1);
     if (view === 'month') {
       setCurrentDate(subMonths(currentDate, 1));
     } else if (view === 'week') {
@@ -95,6 +97,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
   };
 
   const handleNext = () => {
+    setDirection(1);
     if (view === 'month') {
       setCurrentDate(addMonths(currentDate, 1));
     } else if (view === 'week') {
@@ -105,6 +108,7 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
   };
 
   const handleToday = () => {
+    setDirection(0);
     setCurrentDate(new Date());
   };
 
@@ -244,27 +248,68 @@ export default function CalendarView({ onSelectEvent, onSelectSlot, refreshKey }
         </div>
       </div>
 
-      {/* Calendario */}
-      <div style={{ height: '600px' }} className="dark:text-white">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: '100%' }}
-          view={view}
-          onView={setView}
-          culture="es"
-          selectable
-          onSelectEvent={handleSelectEvent}
-          onSelectSlot={handleSelectSlot}
-          eventPropGetter={eventStyleGetter}
-          views={['month', 'week', 'day']}
-          date={currentDate}
-          onNavigate={(newDate) => setCurrentDate(newDate)}
-          popup
-          toolbar={false}
-        />
+      {/* Calendario con Animación */}
+      <div className="relative overflow-hidden" style={{ height: '600px' }}>
+        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+          <motion.div
+            key={currentDate.toISOString() + view}
+            custom={direction}
+            variants={{
+              enter: (direction: number) => ({
+                x: direction > 0 ? 500 : direction < 0 ? -500 : 0,
+                opacity: 0,
+                scale: 0.98
+              }),
+              center: {
+                zIndex: 1,
+                x: 0,
+                opacity: 1,
+                scale: 1
+              },
+              exit: (direction: number) => ({
+                zIndex: 0,
+                x: direction < 0 ? 500 : direction > 0 ? -500 : 0,
+                opacity: 0,
+                scale: 0.98
+              })
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+            className="w-full h-full dark:text-white"
+          >
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: '100%' }}
+              view={view}
+              onView={(v) => {
+                setDirection(0);
+                setView(v);
+              }}
+              culture="es"
+              selectable
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSelectSlot}
+              eventPropGetter={eventStyleGetter}
+              views={['month', 'week', 'day']}
+              date={currentDate}
+              onNavigate={(newDate) => {
+                const diff = newDate.getTime() - currentDate.getTime();
+                setDirection(diff > 0 ? 1 : -1);
+                setCurrentDate(newDate);
+              }}
+              popup
+              toolbar={false}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

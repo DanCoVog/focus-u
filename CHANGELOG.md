@@ -34,7 +34,7 @@ Focus-U es una plataforma integral de gestión de tareas y colaboración diseña
 
 ---
 
-## 🎉 NUEVAS CARACTERÍSTICAS (26 de Marzo, 2026)
+## 🎉 NUEVAS CARACTERÍSTICAS (07 Marzo, 2026)
 
 ### 🌙 Sistema de Dark Mode Completo
 - **ThemeContext.tsx** - Contexto global para gestionar temas
