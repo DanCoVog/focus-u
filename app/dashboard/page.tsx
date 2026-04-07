@@ -3,30 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import DashboardLayout from '../layouts/DashboardLayout';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
 import CalendarView from '../components/Calendar';
-
-interface User {
-  username: string;
-  email: string;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  priority: 'high' | 'medium' | 'low';
-  category: string;
-  completed: boolean;
-  status: 'pendiente' | 'en-progreso' | 'completada';
-  creatorEmail?: string;
-}
+import { toast } from 'sonner';
+import { Task, ApiTask, mapApiTaskToTask, mapPriorityToApi } from '@/types';
+import type { User } from '@/types';
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -36,34 +22,21 @@ export default function Dashboard() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Intentar obtener los datos del usuario
         const storedUsername = localStorage.getItem('username');
         const storedEmail = localStorage.getItem('email');
-        
+
         if (!storedUsername || !storedEmail) {
           throw new Error('No auth data');
         }
 
-        setUser({
-          username: storedUsername,
-          email: storedEmail
-        });
+        setUser({ username: storedUsername, email: storedEmail });
 
-        // Cargar tareas desde la API
         const response = await fetch('/api/tasks');
         if (response.ok) {
           const data = await response.json();
-          setTasks(data.tasks.map((task: any) => ({
-            id: task._id,
-            title: task.title,
-            description: task.description || '',
-            dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : new Date().toISOString(),
-            priority: task.priority === 'alta' ? 'high' : task.priority === 'media' ? 'medium' : 'low',
-            category: task.tags?.[0] || '',
-            completed: task.status === 'completada',
-            status: task.status,
-            creatorEmail: task.creatorEmail || ''
-          })));
+          setTasks(data.tasks.map((task: ApiTask) => mapApiTaskToTask(task)));
+        } else if (response.status === 401) {
+          router.push('/login');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -74,47 +47,15 @@ export default function Dashboard() {
     checkAuth();
   }, [router]);
 
-  const handleLogout = async () => {
-    try {
-      setIsLoading(true);
-
-      // Hacer la petición al endpoint de logout
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Logout failed');
-      }
-
-      // Limpiar localStorage y cookies
-      localStorage.clear();
-      document.cookie.split(";").forEach(c => {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
-
-      // Redireccionar al login
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Error al cerrar sesión. Por favor intente de nuevo.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleAddTask = async (taskData: { title: string; description: string; dueDate: string; priority: 'high' | 'medium' | 'low'; category: string; status?: 'pendiente' | 'en-progreso' | 'completada' }) => {
     try {
-
-      // Obtener email del usuario desde localStorage
       const userEmail = localStorage.getItem('email') || '';
 
       const apiTask = {
         title: taskData.title,
         description: taskData.description,
         dueDate: new Date(taskData.dueDate).toISOString(),
-        priority: taskData.priority === 'high' ? 'alta' : taskData.priority === 'medium' ? 'media' : 'baja',
+        priority: mapPriorityToApi(taskData.priority),
         tags: taskData.category ? [taskData.category] : [],
         status: taskData.status || 'pendiente',
         creatorEmail: userEmail
@@ -122,35 +63,21 @@ export default function Dashboard() {
 
       const response = await fetch('/api/tasks', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiTask),
       });
 
-      if (!response.ok) {
-        throw new Error('Error al crear la tarea');
-      }
+      if (!response.ok) throw new Error('Error al crear la tarea');
 
       const { task } = await response.json();
-      
-      const newTask: Task = {
-        id: task._id,
-        title: task.title,
-        description: task.description || '',
-        dueDate: task.dueDate || new Date().toISOString(),
-        priority: task.priority === 'alta' ? 'high' : task.priority === 'media' ? 'medium' : 'low',
-        category: task.tags?.[0] || '',
-        completed: task.status === 'completada',
-        status: task.status,
-        creatorEmail: task.creatorEmail || userEmail
-      };
+      const newTask = mapApiTaskToTask(task);
 
-      setTasks([...tasks, newTask]);
+      setTasks([newTask, ...tasks]);
       setShowForm(false);
+      toast.success('Tarea creada exitosamente');
     } catch (error) {
       console.error('Error al guardar la tarea:', error);
-      alert('Error al guardar la tarea. Por favor intente de nuevo.');
+      toast.error('Error al guardar la tarea. Intenta de nuevo.');
     }
   };
 
@@ -158,43 +85,32 @@ export default function Dashboard() {
     try {
       const response = await fetch(`/api/tasks?id=${taskId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'completada',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completada' }),
       });
 
-      if (!response.ok) {
-        throw new Error('Error al actualizar la tarea');
-      }
+      if (!response.ok) throw new Error('Error al actualizar la tarea');
 
       setTasks(tasks.map(task =>
-        task.id === taskId
-          ? { ...task, completed: true }
-          : task
+        task.id === taskId ? { ...task, completed: true, status: 'completada' as const } : task
       ));
+      toast.success('Tarea completada');
     } catch (error) {
       console.error('Error al completar la tarea:', error);
-      alert('Error al actualizar la tarea. Por favor intente de nuevo.');
+      toast.error('Error al actualizar la tarea.');
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      const response = await fetch(`/api/tasks?id=${taskId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar la tarea');
-      }
+      const response = await fetch(`/api/tasks?id=${taskId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Error al eliminar la tarea');
 
       setTasks(tasks.filter(task => task.id !== taskId));
+      toast.success('Tarea eliminada');
     } catch (error) {
       console.error('Error al eliminar la tarea:', error);
-      alert('Error al eliminar la tarea. Por favor intente de nuevo.');
+      toast.error('Error al eliminar la tarea.');
     }
   };
 
@@ -216,7 +132,6 @@ export default function Dashboard() {
     }
   });
 
-  // Calcular contadores de tareas
   const taskStats = {
     pendientes: tasks.filter(task => task.status === 'pendiente').length,
     completadas: tasks.filter(task => task.status === 'completada').length,
@@ -224,9 +139,8 @@ export default function Dashboard() {
   };
 
   return (
-    <>
+    <DashboardLayout>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Stats Widgets */}
         {[
           { title: 'Tareas Pendientes', value: taskStats.pendientes, color: 'from-blue-400 to-blue-600' },
           { title: 'Tareas Completadas', value: taskStats.completadas, color: 'from-green-400 to-green-600' },
@@ -249,7 +163,7 @@ export default function Dashboard() {
       </div>
 
       {/* Sección de tareas */}
-      <motion.div 
+      <motion.div
         className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -283,7 +197,7 @@ export default function Dashboard() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
             >
               <option value="all">Todas las tareas</option>
               <option value="pending">Pendientes</option>
@@ -292,7 +206,7 @@ export default function Dashboard() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
             >
               <option value="dueDate">Ordenar por fecha</option>
               <option value="priority">Ordenar por prioridad</option>
@@ -322,24 +236,22 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Sección de Calendario */}
-      <motion.div 
+      <motion.div
         className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
         <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Calendario de Tareas</h3>
-        <CalendarView 
+        <CalendarView
           onSelectEvent={(event) => {
             console.log('Evento seleccionado:', event);
-            // Aquí puedes agregar lógica para manejar eventos seleccionados
           }}
-          onSelectSlot={(slotInfo) => {
-            console.log('Slot seleccionado:', slotInfo);
+          onSelectSlot={() => {
             setShowForm(true);
           }}
         />
       </motion.div>
-    </>
+    </DashboardLayout>
   );
 }

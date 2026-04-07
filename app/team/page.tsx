@@ -3,23 +3,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../layouts/DashboardLayout';
-
-interface TeamMember {
-  email: string;
-  role: 'admin' | 'editor' | 'viewer';
-  joinedAt: string;
-}
-
-interface Team {
-  _id: string;
-  name: string;
-  description: string;
-  owner: string;
-  members: TeamMember[];
-  color: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { toast } from 'sonner';
+import type { Team, TeamMember } from '@/types';
 
 export default function TeamPage() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -42,13 +27,14 @@ export default function TeamPage() {
   const fetchTeams = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/teams?email=${userEmail}`);
+      const response = await fetch('/api/teams');
       if (response.ok) {
         const data = await response.json();
         setTeams(data.teams);
       }
     } catch (error) {
       console.error('Error al cargar equipos:', error);
+      toast.error('Error al cargar los equipos');
     } finally {
       setLoading(false);
     }
@@ -62,20 +48,20 @@ export default function TeamPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          owner: userEmail,
           members: []
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setTeams([...teams, data.team]);
+        setTeams([data.team, ...teams]);
         setFormData({ name: '', description: '', color: '#3b82f6' });
         setShowForm(false);
+        toast.success('Equipo creado exitosamente');
       }
     } catch (error) {
       console.error('Error al crear equipo:', error);
-      alert('Error al crear el equipo');
+      toast.error('Error al crear el equipo');
     }
   };
 
@@ -85,7 +71,7 @@ export default function TeamPage() {
     try {
       const updatedMembers = [
         ...selectedTeam.members,
-        { email: newMemberEmail, role: 'viewer', joinedAt: new Date().toISOString() }
+        { email: newMemberEmail, role: 'viewer' as const, joinedAt: new Date().toISOString() }
       ];
 
       const response = await fetch(`/api/teams?id=${selectedTeam._id}`, {
@@ -99,9 +85,11 @@ export default function TeamPage() {
         setTeams(teams.map(t => t._id === selectedTeam._id ? data.team : t));
         setSelectedTeam(data.team);
         setNewMemberEmail('');
+        toast.success('Miembro agregado');
       }
     } catch (error) {
       console.error('Error al añadir miembro:', error);
+      toast.error('Error al agregar miembro');
     }
   };
 
@@ -109,16 +97,15 @@ export default function TeamPage() {
     if (!confirm('¿Estás seguro de que deseas eliminar este equipo?')) return;
 
     try {
-      const response = await fetch(`/api/teams?id=${teamId}`, {
-        method: 'DELETE'
-      });
-
+      const response = await fetch(`/api/teams?id=${teamId}`, { method: 'DELETE' });
       if (response.ok) {
         setTeams(teams.filter(t => t._id !== teamId));
         setSelectedTeam(null);
+        toast.success('Equipo eliminado');
       }
     } catch (error) {
       console.error('Error al eliminar equipo:', error);
+      toast.error('Error al eliminar el equipo');
     }
   };
 
@@ -137,9 +124,11 @@ export default function TeamPage() {
         const data = await response.json();
         setTeams(teams.map(t => t._id === selectedTeam._id ? data.team : t));
         setSelectedTeam(data.team);
+        toast.success('Miembro removido');
       }
     } catch (error) {
       console.error('Error al eliminar miembro:', error);
+      toast.error('Error al eliminar miembro');
     }
   };
 
@@ -153,8 +142,8 @@ export default function TeamPage() {
           className="flex justify-between items-center"
         >
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">👥 Equipos</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Equipos</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Gestiona tus equipos y colaboradores
             </p>
           </div>
@@ -164,7 +153,7 @@ export default function TeamPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            ➕ Nuevo Equipo
+            + Nuevo Equipo
           </motion.button>
         </motion.div>
 
@@ -175,34 +164,34 @@ export default function TeamPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-800"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
             >
               <form onSubmit={handleCreateTeam} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Nombre del Equipo</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Equipo</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ingresa el nombre del equipo"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Descripción</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Descripción del equipo"
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Color del Equipo</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color del Equipo</label>
                   <input
                     type="color"
                     value={formData.color}
@@ -223,7 +212,7 @@ export default function TeamPage() {
                   <motion.button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-600"
+                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -238,16 +227,15 @@ export default function TeamPage() {
         {/* Teams Grid */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin">⏳</div>
+            <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
             <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando equipos...</p>
           </div>
         ) : teams.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800"
+            className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
           >
-            <p className="text-2xl mb-2">👥</p>
             <p className="text-gray-600 dark:text-gray-400">
               No tienes equipos aún. ¡Crea tu primer equipo!
             </p>
@@ -262,31 +250,21 @@ export default function TeamPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   onClick={() => setSelectedTeam(team)}
-                  className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 border-l-4 cursor-pointer hover:shadow-xl transition-shadow"
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-l-4 cursor-pointer hover:shadow-xl transition-shadow"
                   style={{ borderLeftColor: team.color }}
                   whileHover={{ scale: 1.02 }}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{team.name}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {team.description || 'Sin descripción'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="text-sm">
-                      <p className="text-gray-700 dark:text-gray-300 font-medium">
-                        👤 {team.members.length + 1} Miembros
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-medium">
-                        Propietario: {team.owner === userEmail ? 'Tú' : team.owner}
-                      </span>
-                    </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{team.name}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {team.description || 'Sin descripción'}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                      {team.members.length + 1} Miembros
+                    </span>
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-xs rounded-full font-medium">
+                      {team.owner === userEmail ? 'Propietario' : 'Miembro'}
+                    </span>
                   </div>
                 </motion.div>
               ))}
@@ -301,14 +279,14 @@ export default function TeamPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-800"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {selectedTeam.name}
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400 mt-2">
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
                     {selectedTeam.description}
                   </p>
                 </div>
@@ -319,12 +297,12 @@ export default function TeamPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    🗑️ Eliminar
+                    Eliminar
                   </motion.button>
                 )}
               </div>
 
-              {/* Add Member Form */}
+              {/* Add Member */}
               {selectedTeam.owner === userEmail && (
                 <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-3">
@@ -336,7 +314,7 @@ export default function TeamPage() {
                       value={newMemberEmail}
                       onChange={(e) => setNewMemberEmail(e.target.value)}
                       placeholder="Email del miembro"
-                      className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <motion.button
                       onClick={handleAddMember}
@@ -357,12 +335,12 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {/* Owner */}
-                  <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{selectedTeam.owner}</p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Propietario</p>
                     </div>
-                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100 text-xs rounded-full font-medium">
+                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 text-xs rounded-full font-medium">
                       Admin
                     </span>
                   </div>
@@ -371,7 +349,7 @@ export default function TeamPage() {
                   {selectedTeam.members.map((member) => (
                     <div
                       key={member.email}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                     >
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">{member.email}</p>
@@ -380,7 +358,7 @@ export default function TeamPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-xs rounded-full font-medium">
+                        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-xs rounded-full font-medium">
                           {member.role === 'admin' ? 'Admin' : member.role === 'editor' ? 'Editor' : 'Viewer'}
                         </span>
                         {selectedTeam.owner === userEmail && (
@@ -400,7 +378,7 @@ export default function TeamPage() {
 
               <motion.button
                 onClick={() => setSelectedTeam(null)}
-                className="mt-6 w-full px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-600"
+                className="mt-6 w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >

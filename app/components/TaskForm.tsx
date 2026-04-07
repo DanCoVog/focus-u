@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface TaskFormProps {
   onSubmit: (task: {
@@ -23,13 +24,12 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validar que el título tenga al menos 3 caracteres
+
     if (title.trim().length < 3) {
-      alert('El título debe tener al menos 3 caracteres');
+      toast.error('El título debe tener al menos 3 caracteres');
       return;
     }
-    
+
     onSubmit({
       title,
       description,
@@ -38,7 +38,6 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
       category,
       status: 'pendiente'
     });
-    // Limpiar el formulario
     setTitle('');
     setDescription('');
     setDueDate('');
@@ -46,15 +45,18 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
     setCategory('personal');
   };
 
+  const inputClass = "mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 transition-colors";
+  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300";
+
   return (
     <motion.form
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-lg shadow-lg space-y-4"
+      className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg space-y-4 border border-gray-200 dark:border-gray-700"
       onSubmit={handleSubmit}
     >
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="title" className={labelClass}>
           Título
         </label>
         <input
@@ -62,28 +64,30 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className={inputClass}
+          placeholder="Nombre de la tarea"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="description" className={labelClass}>
           Descripción
         </label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className={inputClass}
           rows={3}
+          placeholder="Describe la tarea..."
           required
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="dueDate" className={labelClass}>
             Fecha límite
           </label>
           <input
@@ -91,20 +95,20 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
             id="dueDate"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className={inputClass}
             required
           />
         </div>
 
         <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="priority" className={labelClass}>
             Prioridad
           </label>
           <select
             id="priority"
             value={priority}
             onChange={(e) => setPriority(e.target.value as 'high' | 'medium' | 'low')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="high">Alta</option>
             <option value="medium">Media</option>
@@ -114,14 +118,14 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
       </div>
 
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="category" className={labelClass}>
           Categoría
         </label>
         <select
           id="category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className={inputClass}
         >
           <option value="personal">Personal</option>
           <option value="trabajo">Trabajo</option>
@@ -136,7 +140,7 @@ export default function TaskForm({ onSubmit }: TaskFormProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-lg font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all"
         >
           Agregar Tarea
         </motion.button>

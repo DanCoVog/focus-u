@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -26,18 +27,17 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Guardar datos del usuario en localStorage
         localStorage.setItem('email', email);
         localStorage.setItem('username', data.user?.username || email.split('@')[0]);
-        // El token se maneja en el servidor con cookies HTTP-only
-        router.refresh(); // Actualizar el estado de la aplicación
+        toast.success('¡Bienvenido de nuevo!');
+        router.refresh();
         router.push('/dashboard');
       } else {
-        alert(data.error || 'Error al iniciar sesión');
+        toast.error(data.error || 'Error al iniciar sesión');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al conectar con el servidor');
+      toast.error('Error al conectar con el servidor');
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +46,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
       <Header />
-      
+
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -55,7 +55,7 @@ export default function LoginPage() {
           className="auth-form"
         >
           <div className="text-center">
-            <motion.h2 
+            <motion.h2
               className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
@@ -63,7 +63,7 @@ export default function LoginPage() {
             >
               ¡Bienvenido de nuevo!
             </motion.h2>
-            <p className="mt-2 text-gray-600">Nos alegra verte otra vez</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Nos alegra verte otra vez</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
@@ -119,12 +119,9 @@ export default function LoginPage() {
               </motion.button>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="text-center text-sm">
               <Link href="/register" className="auth-link">
                 ¿No tienes cuenta? Regístrate
-              </Link>
-              <Link href="/forgot-password" className="auth-link">
-                ¿Olvidaste tu contraseña?
               </Link>
             </div>
           </form>

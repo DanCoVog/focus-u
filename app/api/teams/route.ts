@@ -1,36 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
+import User from '@/models/User';
+import { verifyToken } from '@/lib/auth';
+
+async function getEmailFromUserId(userId: string): Promise<string | null> {
+  try {
+    const user = await User.findById(userId).select('email');
+    return user?.email || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     await connectDB();
 
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
-
-    if (email) {
-      // Obtener equipos del usuario
-      const teams = await Team.find({
-        $or: [
-          { owner: email },
-          { 'members.email': email }
-        ]
-      }).sort({ createdAt: -1 });
-
-      return NextResponse.json({
-        success: true,
-        teams,
-        total: teams.length
-      });
-    } else {
-      const teams = await Team.find();
-      return NextResponse.json({
-        success: true,
-        teams,
-        total: teams.length
-      });
+    const email = await getEmailFromUserId(payload.id);
+    if (!email) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
+
+    // Obtener equipos donde el usuario es owner o miembro
+    const teams = await Team.find({
+      $or: [
+        { owner: email },
+        { 'members.email': email }
+      ]
+    }).sort({ createdAt: -1 });
+
+    return NextResponse.json({
+      success: true,
+      teams,
+      total: teams.length
+    });
   } catch (error: any) {
     console.error('Error al obtener equipos:', error);
     return NextResponse.json(
@@ -42,17 +51,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const body = await request.json();
     await connectDB();
+
+    const email = await getEmailFromUserId(payload.id);
 
     const team = await Team.create({
       name: body.name,
       description: body.description || '',
-      owner: body.owner,
+      owner: email, // Siempre del token, no del body
       members: body.members || [],
       color: body.color || '#3b82f6',
-      createdAt: new Date(),
-      updatedAt: new Date()
     });
 
     return NextResponse.json({
@@ -71,27 +85,33 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const body = await request.json();
 
     await connectDB();
 
+    const email = await getEmailFromUserId(payload.id);
+
+    // Verificar propiedad
+    const existing = await Team.findById(id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
+    }
+    if (existing.owner !== email) {
+      return NextResponse.json({ error: 'Solo el propietario puede editar el equipo' }, { status: 403 });
+    }
+
     const team = await Team.findByIdAndUpdate(
       id,
-      {
-        ...body,
-        updatedAt: new Date()
-      },
+      { ...body, updatedAt: new Date() },
       { new: true }
     );
-
-    if (!team) {
-      return NextResponse.json(
-        { error: 'Equipo no encontrado' },
-        { status: 404 }
-      );
-    }
 
     return NextResponse.json({
       success: true,
@@ -109,19 +129,28 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     await connectDB();
 
-    const team = await Team.findByIdAndDelete(id);
+    const email = await getEmailFromUserId(payload.id);
 
-    if (!team) {
-      return NextResponse.json(
-        { error: 'Equipo no encontrado' },
-        { status: 404 }
-      );
+    // Verificar propiedad
+    const existing = await Team.findById(id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
+    if (existing.owner !== email) {
+      return NextResponse.json({ error: 'Solo el propietario puede eliminar el equipo' }, { status: 403 });
+    }
+
+    await Team.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,

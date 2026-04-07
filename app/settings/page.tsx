@@ -1,16 +1,13 @@
-'use client'
+'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useTheme } from '@/contexts/ThemeContext';
+import { toast } from 'sonner';
+import type { User } from '@/types';
 
-interface User {
-  username: string;
-  email: string;
-}
-
-export default function SettingsPage(){
+export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,50 +23,51 @@ export default function SettingsPage(){
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const storedUsername = localStorage.getItem('username');
+    const storedEmail = localStorage.getItem('email');
+
+    if (storedUsername && storedEmail) {
+      setUser({ username: storedUsername, email: storedEmail });
+      setProfileData({
+        username: storedUsername,
+        email: storedEmail,
+        bio: localStorage.getItem('bio') || ''
+      });
+    }
+
+    // Cargar preferencias de notificaciones
+    const savedNotifications = localStorage.getItem('notifications');
+    if (savedNotifications) {
       try {
-        const storedUsername = localStorage.getItem('username');
-        const storedEmail = localStorage.getItem('email');
-
-        if (storedUsername && storedEmail) {
-          setUser({ username: storedUsername, email: storedEmail });
-          setProfileData({
-            username: storedUsername,
-            email: storedEmail,
-            bio: localStorage.getItem('bio') || ''
-          });
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      }
-    };
-
-    checkAuth();
+        setNotifications(JSON.parse(savedNotifications));
+      } catch { /* ignorar */ }
+    }
   }, []);
 
   const handleSaveProfile = async () => {
     try {
       setIsLoading(true);
-      // Aquí iría la lógica para guardar el perfil
       localStorage.setItem('username', profileData.username);
       localStorage.setItem('bio', profileData.bio);
-      alert('Perfil actualizado correctamente');
+      toast.success('Perfil actualizado correctamente');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error al guardar el perfil');
+      toast.error('Error al guardar el perfil');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleNotificationChange = (type: keyof typeof notifications) => {
-    setNotifications(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+    setNotifications(prev => {
+      const updated = { ...prev, [type]: !prev[type] };
+      localStorage.setItem('notifications', JSON.stringify(updated));
+      toast.success(`${!prev[type] ? 'Activada' : 'Desactivada'}: ${type === 'email' ? 'Email' : type === 'push' ? 'Push' : 'Recordatorios'}`);
+      return updated;
+    });
   };
 
-  return(
+  return (
     <DashboardLayout>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -78,7 +76,7 @@ export default function SettingsPage(){
         className="space-y-8"
       >
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          ⚙️ Configuración
+          Configuración
         </h1>
 
         {/* Perfil de Usuario */}
@@ -98,7 +96,7 @@ export default function SettingsPage(){
                 type="text"
                 value={profileData.username}
                 onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
@@ -108,9 +106,10 @@ export default function SettingsPage(){
               <input
                 type="email"
                 value={profileData.email}
-                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">El email no se puede cambiar</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -120,7 +119,7 @@ export default function SettingsPage(){
                 value={profileData.bio}
                 onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Cuéntanos un poco sobre ti..."
               />
             </div>
@@ -144,25 +143,25 @@ export default function SettingsPage(){
           transition={{ delay: 0.2 }}
         >
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Apariencia</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Tema Oscuro</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Cambia entre modo claro y oscuro</p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={toggleTheme}
-                className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </motion.button>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Tema Oscuro</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Cambia entre modo claro y oscuro</p>
             </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTheme}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </motion.button>
           </div>
         </motion.div>
 
@@ -189,7 +188,7 @@ export default function SettingsPage(){
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleNotificationChange(item.key as keyof typeof notifications)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
                     notifications[item.key as keyof typeof notifications] ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
                   }`}
                 >
@@ -212,20 +211,19 @@ export default function SettingsPage(){
           transition={{ delay: 0.4 }}
         >
           <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-4">Zona de Peligro</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Eliminar Cuenta</h3>
-              <p className="text-sm text-red-600 dark:text-red-400 mb-3">
-                Esta acción no se puede deshacer. Se eliminarán permanentemente todos tus datos.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Eliminar Cuenta
-              </motion.button>
-            </div>
+          <div>
+            <h3 className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Eliminar Cuenta</h3>
+            <p className="text-sm text-red-600 dark:text-red-400 mb-3">
+              Esta acción no se puede deshacer. Se eliminarán permanentemente todos tus datos.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => toast.error('Esta función aún no está disponible')}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Eliminar Cuenta
+            </motion.button>
           </div>
         </motion.div>
       </motion.div>

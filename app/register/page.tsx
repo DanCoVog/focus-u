@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
-import React from 'react';
-
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -29,13 +28,14 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
+        toast.success('¡Cuenta creada exitosamente! Inicia sesión.');
         router.push('/login?registered=true');
       } else {
-        alert(data.error || 'Error al registrar usuario');
+        toast.error(data.error || 'Error al registrar usuario');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al conectar con el servidor');
+      toast.error('Error al conectar con el servidor');
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +44,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
       <Header />
-      
+
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -53,7 +53,7 @@ export default function RegisterPage() {
           className="auth-form"
         >
           <div className="text-center">
-            <motion.h2 
+            <motion.h2
               className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
@@ -61,7 +61,7 @@ export default function RegisterPage() {
             >
               Crear una cuenta
             </motion.h2>
-            <p className="mt-2 text-gray-600">Únete a nuestra comunidad</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Únete a nuestra comunidad</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">

@@ -1,14 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Task from '@/models/Task';
+import User from '@/models/User';
+import { verifyToken } from '@/lib/auth';
 
-// 📦 OBTENER TAREAS (GET)
+// Helper: obtener email del usuario desde su ID
+async function getEmailFromUserId(userId: string): Promise<string | null> {
+  try {
+    const user = await User.findById(userId).select('email');
+    return user?.email || null;
+  } catch {
+    return null;
+  }
+}
 
+// 📦 OBTENER TAREAS (GET) — filtradas por usuario
 export async function GET(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     await connectDB();
 
-    const tasks = await Task.find()
+    const email = await getEmailFromUserId(payload.id);
+    if (!email) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    const tasks = await Task.find({ creatorEmail: email })
       .sort({ createdAt: -1 });
 
     return NextResponse.json({
@@ -25,14 +46,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 📝 CREAR TAREA (POST)
-
+// 📝 CREAR TAREA (POST) — asigna email del usuario autenticado
 export async function POST(request: NextRequest) {
   try {
-    console.log('📝 Iniciando creación de tarea...');
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
 
     const body = await request.json();
-    console.log('📄 Datos recibidos:', body);
 
     if (!body.title || typeof body.title !== 'string') {
       return NextResponse.json(
@@ -60,6 +82,8 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    const email = await getEmailFromUserId(payload.id);
+
     const task = await Task.create({
       title: body.title,
       description: body.description || '',
@@ -67,13 +91,10 @@ export async function POST(request: NextRequest) {
       priority: body.priority || 'media',
       dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
       tags: Array.isArray(body.tags) ? body.tags : [],
-      creatorEmail: body.creatorEmail || '',
+      creatorEmail: email || body.creatorEmail || '',
+      createdBy: payload.id,
       completed: body.status === 'completada',
-      createdAt: new Date(),
-      updatedAt: new Date()
     });
-
-    console.log('✅ Tarea creada:', task);
 
     return NextResponse.json(
       { message: 'Tarea creada exitosamente', task },
@@ -81,8 +102,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('Error al crear tarea:', error);
-    
-    // Manejar errores de validación
+
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message);
       return NextResponse.json(
@@ -90,7 +110,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Error al crear la tarea', details: error?.message },
       { status: 500 }
@@ -98,10 +118,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 🔄 ACTUALIZAR TAREA (PUT)
-
+// 🔄 ACTUALIZAR TAREA (PUT) — una sola actualización, valida antes
 export async function PUT(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('id');
     if (!taskId) {
@@ -113,48 +137,43 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    await connectDB();
-
-    const task = await Task.findByIdAndUpdate(
-      taskId,
-      {
-        ...body,
-        status: body.status || undefined,
-        priority: body.priority || undefined,
-        description: body.description || undefined
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!task) {
-      return NextResponse.json(
-        { error: 'Tarea no encontrada' },
-        { status: 404 }
-      );
-    }
-
+    // Validar ANTES de actualizar
     const validStatus = ['pendiente', 'en-progreso', 'completada'];
     const validPriority = ['baja', 'media', 'alta'];
 
     if (body.status && !validStatus.includes(body.status)) {
-      return NextResponse.json(
-        { error: 'Estado inválido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
     }
 
     if (body.priority && !validPriority.includes(body.priority)) {
-      return NextResponse.json(
-        { error: 'Prioridad inválida' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Prioridad inválida' }, { status: 400 });
+    }
+
+    await connectDB();
+
+    const email = await getEmailFromUserId(payload.id);
+
+    // Verificar que la tarea pertenece al usuario
+    const existingTask = await Task.findById(taskId);
+    if (!existingTask) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
+    }
+    if (existingTask.creatorEmail !== email) {
+      return NextResponse.json({ error: 'No tienes permiso para editar esta tarea' }, { status: 403 });
+    }
+
+    // Actualizar (una sola vez)
+    const updateData = { ...body };
+    if (body.status === 'completada') {
+      updateData.completed = true;
+      updateData.completedAt = new Date();
     }
 
     const updatedTask = await Task.findByIdAndUpdate(
       taskId,
-      { ...body },
+      updateData,
       { new: true, runValidators: true }
-    ).populate('assignedTo', 'username email');
+    );
 
     return NextResponse.json({
       message: 'Tarea actualizada exitosamente',
@@ -169,13 +188,14 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-
-
-
-// ❌ ELIMINAR TAREA (DELETE)
-
+// ❌ ELIMINAR TAREA (DELETE) — verifica propiedad
 export async function DELETE(request: NextRequest) {
   try {
+    const payload = verifyToken(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('id');
     if (!taskId) {
@@ -187,13 +207,18 @@ export async function DELETE(request: NextRequest) {
 
     await connectDB();
 
-    const task = await Task.findByIdAndDelete(taskId);
+    const email = await getEmailFromUserId(payload.id);
+
+    // Verificar que la tarea pertenece al usuario
+    const task = await Task.findById(taskId);
     if (!task) {
-      return NextResponse.json(
-        { error: 'Tarea no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 });
     }
+    if (task.creatorEmail !== email) {
+      return NextResponse.json({ error: 'No tienes permiso para eliminar esta tarea' }, { status: 403 });
+    }
+
+    await Task.findByIdAndDelete(taskId);
 
     return NextResponse.json({
       message: 'Tarea eliminada exitosamente',
