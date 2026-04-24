@@ -7,6 +7,10 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
 import CalendarView from '../components/Calendar';
+import FocusTimer from '../components/FocusTimer';
+import AmbientSounds from '../components/AmbientSounds';
+import ProductivityHeatmap from '../components/ProductivityHeatmap';
+import WeeklyReport from '../components/WeeklyReport';
 import { toast } from 'sonner';
 import { Task, ApiTask, mapApiTaskToTask, mapPriorityToApi } from '@/types';
 import type { User } from '@/types';
@@ -59,7 +63,7 @@ export default function Dashboard() {
         priority: mapPriorityToApi(taskData.priority),
         tags: taskData.category ? [taskData.category] : [],
         status: taskData.status || 'pendiente',
-        creatorEmail: userEmail
+        creatorEmail: userEmail,
       };
 
       const response = await fetch('/api/tasks', {
@@ -71,9 +75,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Error al crear la tarea');
 
       const { task } = await response.json();
-      const newTask = mapApiTaskToTask(task);
-
-      setTasks([newTask, ...tasks]);
+      setTasks([mapApiTaskToTask(task), ...tasks]);
       setShowForm(false);
       setCalendarKey(prev => prev + 1);
       toast.success('Tarea creada exitosamente');
@@ -139,124 +141,141 @@ export default function Dashboard() {
   const taskStats = {
     pendientes: tasks.filter(task => task.status === 'pendiente').length,
     completadas: tasks.filter(task => task.status === 'completada').length,
-    enProgreso: tasks.filter(task => task.status === 'en-progreso').length
+    enProgreso: tasks.filter(task => task.status === 'en-progreso').length,
   };
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[
-          { title: 'Tareas Pendientes', value: taskStats.pendientes, color: 'from-blue-400 to-blue-600' },
-          { title: 'Tareas Completadas', value: taskStats.completadas, color: 'from-green-400 to-green-600' },
-          { title: 'En Progreso', value: taskStats.enProgreso, color: 'from-yellow-400 to-yellow-600' }
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -5 }}
-          >
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{stat.title}</h3>
-            <p className={`text-4xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-              {stat.value}
-            </p>
-          </motion.div>
-        ))}
+      <div className="space-y-6">
+        <motion.div
+          className="rounded-3xl bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white shadow-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold">¡Hola {user?.username || 'Usuario'}!</h1>
+              <p className="text-sm text-blue-100 mt-1">
+                Tienes <span className="font-bold">{taskStats.pendientes}</span> tareas pendientes para hoy.
+              </p>
+            </div>
+            <div className="inline-flex gap-3">
+              <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white">
+                {tasks.length} tareas totales
+              </span>
+              <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white">
+                {taskStats.completadas} completadas
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid gap-4 xl:grid-cols-[2.2fr_1fr]">
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {[
+                { label: 'Pendientes', value: taskStats.pendientes, color: 'from-blue-400 to-blue-600' },
+                { label: 'Completadas', value: taskStats.completadas, color: 'from-green-400 to-green-600' },
+                { label: 'En progreso', value: taskStats.enProgreso, color: 'from-yellow-400 to-yellow-600' },
+              ].map((card) => (
+                <motion.div
+                  key={card.label}
+                  className="rounded-3xl bg-white dark:bg-gray-800 p-5 shadow-sm border border-gray-200 dark:border-gray-700"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-3">{card.label}</p>
+                  <p className={`text-4xl font-bold bg-gradient-to-r ${card.color} bg-clip-text text-transparent`}>
+                    {card.value}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              className="flex flex-col h-full min-h-[500px] rounded-3xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.35 }}
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Gestión de tareas</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Filtra, ordena y administra tus tareas desde aquí.
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowForm(!showForm)}
+                  className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-700 transition-colors"
+                >
+                  {showForm ? 'Cerrar formulario' : 'Agregar tarea'}
+                </motion.button>
+              </div>
+
+              {showForm && (
+                <motion.div
+                  className="mt-6 rounded-3xl border border-dashed border-gray-300 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900/60"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <TaskForm onSubmit={handleAddTask} />
+                </motion.div>
+              )}
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="all">Todas</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="completed">Completadas</option>
+                </select>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="dueDate">Por fecha</option>
+                  <option value="priority">Por prioridad</option>
+                </select>
+              </div>
+
+              {sortedTasks.length > 0 ? (
+                <div className="mt-6 space-y-4">
+                  <TaskList
+                    tasks={sortedTasks}
+                    onComplete={handleCompleteTask}
+                    onDelete={handleDeleteTask}
+                  />
+                </div>
+              ) : (
+                <div className="mt-6 flex-1 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-400">
+                  {filter === 'all'
+                    ? 'No hay tareas aún. Agrega una para comenzar.'
+                    : 'No hay tareas que coincidan con el filtro actual.'}
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          <div className="space-y-4">
+            <FocusTimer />
+            <AmbientSounds />
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <ProductivityHeatmap />
+          <WeeklyReport />
+        </div>
       </div>
-
-      {/* Sección de tareas */}
-      <motion.div
-        className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Gestión de Tareas</h3>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {showForm ? 'Cerrar' : 'Agregar Tarea'}
-          </motion.button>
-        </div>
-
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-8"
-          >
-            <TaskForm onSubmit={handleAddTask} />
-          </motion.div>
-        )}
-
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
-          <div className="flex space-x-4">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
-            >
-              <option value="all">Todas las tareas</option>
-              <option value="pending">Pendientes</option>
-              <option value="completed">Completadas</option>
-            </select>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2"
-            >
-              <option value="dueDate">Ordenar por fecha</option>
-              <option value="priority">Ordenar por prioridad</option>
-            </select>
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Total: {tasks.length} tareas ({tasks.filter(t => t.completed).length} completadas)
-          </div>
-        </div>
-
-        {sortedTasks.length > 0 ? (
-          <TaskList
-            tasks={sortedTasks}
-            onComplete={handleCompleteTask}
-            onDelete={handleDeleteTask}
-          />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-8 text-gray-500 dark:text-gray-400"
-          >
-            No hay tareas {filter !== 'all' ? `${filter === 'completed' ? 'completadas' : 'pendientes'}` : ''}.
-            {filter === 'all' && ' ¡Agrega una tarea para comenzar!'}
-          </motion.div>
-        )}
-      </motion.div>
-
-      {/* Sección de Calendario */}
-      <motion.div
-        className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Calendario de Tareas</h3>
-        <CalendarView
-          refreshKey={calendarKey}
-          onSelectEvent={(event) => {
-            console.log('Evento seleccionado:', event);
-          }}
-          onSelectSlot={() => {
-            setShowForm(true);
-          }}
-        />
-      </motion.div>
     </DashboardLayout>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ZenProvider } from "@/contexts/ZenContext";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -30,15 +31,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300`}
       >
         <ThemeProvider>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            toastOptions={{
-              duration: 3000,
-            }}
-          />
+          <ZenProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                duration: 3000,
+              }}
+            />
+          </ZenProvider>
         </ThemeProvider>
       </body>
     </html>

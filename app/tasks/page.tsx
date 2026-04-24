@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import DashboardLayout from "../layouts/DashboardLayout"
 import TaskForm from "../components/TaskForm"
 import TaskList from "../components/TaskList"
+import { logActivity } from "../components/FocusTimer"
 import { toast } from 'sonner'
 import { Task, ApiTask, mapApiTaskToTask, mapPriorityToApi } from '@/types'
 
@@ -71,6 +72,7 @@ export default function TasksPage() {
       setTasks(tasks.map(task =>
         task.id === taskId ? { ...task, completed: true, status: 'completada' as const } : task
       ))
+      logActivity('task')
       toast.success('Tarea completada')
     } catch (error) {
       console.error('Error:', error)

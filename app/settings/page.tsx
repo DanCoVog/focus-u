@@ -23,17 +23,15 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem('username');
-    const storedEmail = localStorage.getItem('email');
+    const storedUsername = localStorage.getItem('username') || 'Usuario Ejemplo';
+    const storedEmail = localStorage.getItem('email') || 'test2@gmail.com';
 
-    if (storedUsername && storedEmail) {
-      setUser({ username: storedUsername, email: storedEmail });
-      setProfileData({
-        username: storedUsername,
-        email: storedEmail,
-        bio: localStorage.getItem('bio') || ''
-      });
-    }
+    setUser({ username: storedUsername, email: storedEmail });
+    setProfileData({
+      username: storedUsername,
+      email: storedEmail,
+      bio: localStorage.getItem('bio') || '¡Hola! Estoy usando Focus-U para organizar mis tareas.'
+    });
 
     // Cargar preferencias de notificaciones
     const savedNotifications = localStorage.getItem('notifications');
@@ -48,7 +46,9 @@ export default function SettingsPage() {
     try {
       setIsLoading(true);
       localStorage.setItem('username', profileData.username);
+      localStorage.setItem('email', profileData.email);
       localStorage.setItem('bio', profileData.bio);
+      setUser({ username: profileData.username, email: profileData.email });
       toast.success('Perfil actualizado correctamente');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -106,10 +106,10 @@ export default function SettingsPage() {
               <input
                 type="email"
                 value={profileData.email}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">El email no se puede cambiar</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ahora puedes actualizar tu correo electrónico</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
