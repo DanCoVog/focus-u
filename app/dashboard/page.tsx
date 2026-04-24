@@ -172,7 +172,7 @@ export default function Dashboard() {
         </motion.div>
 
         <div className="grid gap-4 xl:grid-cols-[2.2fr_1fr]">
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4 h-full">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {[
                 { label: 'Pendientes', value: taskStats.pendientes, color: 'from-blue-400 to-blue-600' },
@@ -195,7 +195,7 @@ export default function Dashboard() {
             </div>
 
             <motion.div
-              className="flex flex-col h-full min-h-[500px] rounded-3xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+              className="flex-1 flex flex-col rounded-3xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.35 }}
@@ -265,7 +265,7 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4 h-full">
             <FocusTimer />
             <AmbientSounds />
           </div>
